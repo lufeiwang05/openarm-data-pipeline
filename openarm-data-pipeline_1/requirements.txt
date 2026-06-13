@@ -1,0 +1,10 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+mcap>=1.1
+numpy>=1.26
+pillow>=10.0
+pandas>=2.0
+pyarrow>=14.0
+pyyaml>=6.0
+# hardware path only (not needed for the software-only mock):
+# python-can>=4.3

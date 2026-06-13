@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: openarm-data-pipeline
+Version: 0.1.0
+Summary: Data-collection pipeline for the OpenArm 2.0 robotic arm (software-only mock)
+Requires-Python: >=3.10
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.29
+Requires-Dist: mcap>=1.1
+Requires-Dist: numpy>=1.26
+Requires-Dist: pillow>=10.0
+Requires-Dist: pandas>=2.0
+Requires-Dist: pyarrow>=14.0
+Requires-Dist: pyyaml>=6.0
+Provides-Extra: hardware
+Requires-Dist: python-can>=4.3; extra == "hardware"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"

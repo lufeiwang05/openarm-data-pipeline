@@ -1,0 +1,30 @@
+[project]
+name = "openarm-data-pipeline"
+version = "0.1.0"
+description = "Data-collection pipeline for the OpenArm 2.0 robotic arm (software-only mock)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "mcap>=1.1",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+hardware = ["python-can>=4.3"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+openarm-can-cli = "openarm_pipeline.can.cli:main"
+openarm-export = "openarm_pipeline.storage.openarm_export:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

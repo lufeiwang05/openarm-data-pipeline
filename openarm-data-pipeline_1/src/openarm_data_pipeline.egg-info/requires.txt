@@ -1,0 +1,14 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+mcap>=1.1
+numpy>=1.26
+pillow>=10.0
+pandas>=2.0
+pyarrow>=14.0
+pyyaml>=6.0
+
+[dev]
+pytest>=8.0
+
+[hardware]
+python-can>=4.3

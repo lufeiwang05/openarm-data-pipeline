@@ -1,0 +1,3 @@
+[console_scripts]
+openarm-can-cli = openarm_pipeline.can.cli:main
+openarm-export = openarm_pipeline.storage.openarm_export:main

@@ -1,0 +1,280 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenArm 2.0 · Data Collection</title>
+<style>
+  :root {
+    --bg: #0e1419;
+    --panel: #151c23;
+    --panel-2: #1b242c;
+    --line: #26323c;
+    --ink: #e6edf2;
+    --ink-dim: #8a9aa6;
+    --teal: #4ec9b0;      /* nominal / live */
+    --amber: #d7a23a;     /* caution / skew */
+    --red: #e0526a;       /* recording */
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.4;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #121a21, #0e1419);
+  }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: .04em; margin: 0; }
+  header .sub { color: var(--ink-dim); font-family: var(--mono); font-size: 12px; }
+  .spacer { flex: 1; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .dot.live { background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+  .dot.down { background: var(--ink-dim); }
+
+  main { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; padding: 16px 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .panel > .hd {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+    color: var(--ink-dim); text-transform: uppercase;
+  }
+  .panel > .bd { padding: 14px; }
+
+  /* record control */
+  .ctl { display: flex; align-items: center; gap: 14px; }
+  button#rec {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    border: 1px solid var(--teal); color: var(--teal); background: transparent;
+    padding: 9px 18px; border-radius: 6px; cursor: pointer; letter-spacing: .04em;
+    transition: all .15s ease;
+  }
+  button#rec:hover { background: rgba(78,201,176,.1); }
+  button#rec.on { border-color: var(--red); color: #fff; background: var(--red);
+                  animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(224,82,106,.5);} 50% { box-shadow: 0 0 0 7px rgba(224,82,106,0);} }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  /* joints */
+  .arm-title { font-family: var(--mono); font-size: 12px; color: var(--teal);
+               margin: 4px 0 8px; letter-spacing: .05em; }
+  .jrow { display: grid; grid-template-columns: 120px 1fr 64px 64px; gap: 8px;
+          align-items: center; padding: 3px 0; }
+  .jname { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); }
+  .bar { height: 14px; background: var(--panel-2); border-radius: 3px; position: relative; overflow: hidden; }
+  .bar > .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .bar > .fill { position: absolute; top: 0; bottom: 0; background: var(--teal); opacity: .85; }
+  .num { font-family: var(--mono); font-size: 12px; text-align: right; color: var(--ink); }
+  .num.dim { color: var(--ink-dim); }
+  .hdr-row { color: var(--ink-dim); font-size: 11px; }
+
+  /* cameras */
+  .cams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cam { background: #000; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; position: relative; }
+  .cam img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; background:#000; }
+  .cam .tag { position: absolute; left: 6px; top: 6px; font-family: var(--mono);
+              font-size: 11px; color: var(--ink); background: rgba(0,0,0,.55);
+              padding: 1px 6px; border-radius: 3px; }
+  .cam .fps { position: absolute; right: 6px; top: 6px; font-family: var(--mono);
+              font-size: 11px; color: var(--teal); background: rgba(0,0,0,.55);
+              padding: 1px 6px; border-radius: 3px; }
+
+  /* sync */
+  .skew { display: flex; align-items: baseline; gap: 10px; font-family: var(--mono); }
+  .skew .big { font-size: 26px; font-weight: 600; }
+  .skew .unit { color: var(--ink-dim); font-size: 13px; }
+  .skewlist { margin-top: 10px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px;
+              font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+  .ok { color: var(--teal); } .warn { color: var(--amber); }
+
+  /* episodes */
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink-dim); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  td a { color: var(--teal); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+  .empty { color: var(--ink-dim); font-family: var(--mono); font-size: 12px; padding: 6px 8px; }
+</style>
+
+<header>
+  <h1>OpenArm 2.0</h1>
+  <span class="sub">data collection · bimanual · CAN-FD 1M/5M</span>
+  <span class="spacer"></span>
+  <span id="conn" class="meta"><span class="dot down"></span> connecting…</span>
+</header>
+
+<main>
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div class="panel">
+      <div class="hd">recording</div>
+      <div class="bd ctl">
+        <button id="rec">● Start recording</button>
+        <div class="meta">
+          episode <b id="epid">—</b> · steps <b id="steps">0</b> ·
+          stored episodes <b id="epcount">0</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hd">joint telemetry</div>
+      <div class="bd" id="joints"><div class="empty">waiting for CAN stream…</div></div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div class="panel">
+      <div class="hd">camera feeds</div>
+      <div class="bd">
+        <div class="cams" id="cams"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hd">sync health</div>
+      <div class="bd">
+        <div class="skew">
+          <span class="big" id="skew">—</span><span class="unit">ms max skew</span>
+          <span class="spacer"></span>
+          <span id="degraded" class="meta"></span>
+        </div>
+        <div class="skewlist" id="skewlist"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hd">episodes</div>
+      <div class="bd">
+        <table>
+          <thead><tr><th>id</th><th>steps</th><th>dur</th><th>size</th><th></th></tr></thead>
+          <tbody id="eptable"><tr><td class="empty" colspan="5">none yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const FPS = { wrist_left:60, wrist_right:60, ceiling:30, head:30 };
+let recording = false;
+
+// Joint scaling caps for the bar display (match config p_max).
+function jbar(name, fb) {
+  const cap = 2.0; // rad visual range
+  const frac = Math.max(-1, Math.min(1, fb.position / cap));
+  const w = Math.abs(frac) * 50;
+  const left = frac >= 0 ? 50 : 50 - w;
+  const color = fb.error === "ok" ? "var(--teal)" : "var(--red)";
+  return `<div class="jrow">
+    <span class="jname">${name}</span>
+    <div class="bar"><span class="mid"></span>
+      <span class="fill" style="left:${left}%;width:${w}%;background:${color}"></span></div>
+    <span class="num">${fb.position.toFixed(3)}</span>
+    <span class="num dim">${fb.torque.toFixed(2)}</span>
+  </div>`;
+}
+
+function renderJoints(joints) {
+  const el = document.getElementById("joints");
+  if (!joints || !Object.keys(joints).length) return;
+  let html = "";
+  for (const arm of Object.keys(joints)) {
+    html += `<div class="arm-title">${arm} arm · ${arm === "right" ? "can0" : "can1"}</div>`;
+    html += `<div class="jrow hdr-row"><span class="jname">joint</span><span></span>
+      <span class="num">pos·rad</span><span class="num">τ·Nm</span></div>`;
+    for (const [name, fb] of Object.entries(joints[arm])) html += jbar(name, fb);
+  }
+  el.innerHTML = html;
+}
+
+function renderCams(cams) {
+  const el = document.getElementById("cams");
+  if (el.children.length) return; // build once
+  el.innerHTML = cams.map(c => `
+    <div class="cam">
+      <img id="cam-${c}" alt="${c}">
+      <span class="tag">${c.replace("_"," ")}</span>
+      <span class="fps">${FPS[c] || ""} fps</span>
+    </div>`).join("");
+}
+
+function refreshCams(cams) {
+  for (const c of cams) {
+    const img = document.getElementById("cam-" + c);
+    if (img) img.src = `/api/cameras/${c}/preview?t=` + Date.now();
+  }
+}
+
+function renderSync(sync) {
+  const skew = document.getElementById("skew");
+  if (sync.max_skew_ms == null) return;
+  skew.textContent = sync.max_skew_ms.toFixed(1);
+  skew.className = "big " + (sync.degraded ? "warn" : "ok");
+  document.getElementById("degraded").innerHTML =
+    sync.degraded ? '<span class="warn">DEGRADED</span>' : '<span class="ok">nominal</span>';
+  const list = document.getElementById("skewlist");
+  list.innerHTML = Object.entries(sync.per_sensor_skew_ms || {})
+    .sort((a,b) => b[1]-a[1])
+    .map(([k,v]) => `<span>${k}</span><span class="${v>20?'warn':'ok'}">${v.toFixed(2)} ms</span>`)
+    .join("");
+}
+
+async function loadEpisodes() {
+  const r = await fetch("/api/episodes"); const { episodes } = await r.json();
+  const tb = document.getElementById("eptable");
+  if (!episodes.length) { tb.innerHTML = '<tr><td class="empty" colspan="5">none yet</td></tr>'; return; }
+  tb.innerHTML = episodes.map(e => `
+    <tr>
+      <td>${e.episode_id}</td>
+      <td>${e.steps ?? "—"}</td>
+      <td>${e.duration_s != null ? e.duration_s + "s" : "—"}</td>
+      <td>${e.size_bytes != null ? (e.size_bytes/1024).toFixed(0)+" KB" : "—"}</td>
+      <td><a href="/api/episodes/${e.episode_id}/download">download</a></td>
+    </tr>`).join("");
+}
+
+function setRecUI(on, epid) {
+  recording = on;
+  const btn = document.getElementById("rec");
+  btn.classList.toggle("on", on);
+  btn.textContent = on ? "■ Stop recording" : "● Start recording";
+  document.getElementById("epid").textContent = epid || "—";
+}
+
+document.getElementById("rec").onclick = async () => {
+  const url = recording ? "/api/recording/stop" : "/api/recording/start";
+  const r = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"},
+                               body: JSON.stringify({notes: "dashboard session"}) });
+  const res = await r.json();
+  if (!recording) setRecUI(true, res.episode_id);
+  else { setRecUI(false, null); loadEpisodes(); }
+};
+
+// Live state over WebSocket; camera previews refreshed on a timer.
+let camsBuilt = false;
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => { document.getElementById("conn").innerHTML =
+    '<span class="dot live"></span> live'; };
+  ws.onclose = () => { document.getElementById("conn").innerHTML =
+    '<span class="dot down"></span> reconnecting…'; setTimeout(connect, 1000); };
+  ws.onmessage = (ev) => {
+    const s = JSON.parse(ev.data);
+    if (!camsBuilt && s.cameras) { renderCams(s.cameras); camsBuilt = true; }
+    renderJoints(s.joints);
+    renderSync(s.sync || {});
+    document.getElementById("steps").textContent = s.recorded_steps;
+    document.getElementById("epcount").textContent = s.episode_count;
+    if (s.recording !== recording) setRecUI(s.recording, s.episode_id);
+  };
+}
+connect();
+setInterval(() => { if (camsBuilt) refreshCams(Object.keys(FPS)); }, 200);
+loadEpisodes();
+setInterval(loadEpisodes, 5000);
+</script>
